@@ -4,9 +4,14 @@ import 'package:schmackofatz/screens/fridge_screen.dart';
 import 'package:schmackofatz/screens/home_screen.dart';
 import 'package:schmackofatz/screens/recipes_screen.dart';
 import 'package:schmackofatz/screens/shopping_screen.dart';
+import 'package:schmackofatz/start_decider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -14,16 +19,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: NavigatorPage(),
-    );
+    return MaterialApp(debugShowCheckedModeBanner: false, home: StartDecider());
   }
 }
 
 class NavigatorPage extends StatefulWidget {
   const NavigatorPage({super.key});
-
   @override
   State<NavigatorPage> createState() => _NavigatorPageState();
 }
@@ -35,6 +36,7 @@ class _NavigatorPageState extends State<NavigatorPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: PageView(
         controller: pageController,
         children: <Widget>[
@@ -51,6 +53,7 @@ class _NavigatorPageState extends State<NavigatorPage> {
         },
       ),
       bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: Colors.white,
         currentIndex: currentIndex,
         selectedItemColor: Color.fromARGB(255, 26, 169, 48),
         selectedLabelStyle: TextStyle(fontSize: 14),

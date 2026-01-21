@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "249484897146",
+    "project_id": "schmackofatz-787",
+    "storage_bucket": "schmackofatz-787.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:249484897146:android:9a3cbe38e4407bd9fa44c3",
+        "android_client_info": {
+          "package_name": "com.example.schmackofatz"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAWTM51VERmYt2IXXjlwZuVukT-ZIopHew"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
