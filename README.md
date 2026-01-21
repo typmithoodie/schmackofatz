@@ -1,2 +1,4 @@
 ## schmackofatz
-# Your smart cooking assistant in  the kitchen
+
+Your smart cooking assistant in  the kitchen
+
