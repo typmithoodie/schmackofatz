@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 import 'package:schmackofatz/screens/analysis_screen.dart';
 import 'package:schmackofatz/screens/fridge_screen.dart';
 import 'package:schmackofatz/screens/home_screen.dart';
@@ -29,16 +30,28 @@ class NavigatorPage extends StatefulWidget {
   State<NavigatorPage> createState() => _NavigatorPageState();
 }
 
-int currentIndex = 0;
-PageController pageController = PageController(initialPage: 0);
-
 class _NavigatorPageState extends State<NavigatorPage> {
+  int _currentIndex = 0;
+  late PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: 0);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: PageView(
-        controller: pageController,
+        controller: _pageController,
         children: <Widget>[
           HomeScreen(),
           FridgeScreen(),
@@ -48,13 +61,13 @@ class _NavigatorPageState extends State<NavigatorPage> {
         ],
         onPageChanged: (newIndex) {
           setState(() {
-            currentIndex = newIndex;
+            _currentIndex = newIndex;
           });
         },
       ),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.white,
-        currentIndex: currentIndex,
+        currentIndex: _currentIndex,
         selectedItemColor: Color.fromARGB(255, 26, 169, 48),
         selectedLabelStyle: TextStyle(fontSize: 14),
         unselectedFontSize: 14,
@@ -62,7 +75,7 @@ class _NavigatorPageState extends State<NavigatorPage> {
         type: BottomNavigationBarType.fixed,
         items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
+            icon: Icon(LucideIcons.home),
             label: 'Startseite',
           ),
           BottomNavigationBarItem(
@@ -83,11 +96,10 @@ class _NavigatorPageState extends State<NavigatorPage> {
           ),
         ],
         onTap: (newIndex) {
-          pageController.animateToPage(
-            newIndex,
-            duration: Duration(milliseconds: 500),
-            curve: Curves.ease,
-          );
+          _pageController.jumpToPage(newIndex);
+          setState(() {
+            _currentIndex = newIndex;
+          });
         },
       ),
     );

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 /// Einfaches ShoppingItem Modell mit Kategorien und Preisen
 class ShoppingItem {
@@ -19,6 +21,29 @@ class ShoppingItem {
     required this.price,
     this.done = false,
   });
+
+  // JSON serialization methods
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'amount': amount,
+      'category': category,
+      'price': price,
+      'done': done,
+    };
+  }
+
+  factory ShoppingItem.fromJson(Map<String, dynamic> json) {
+    return ShoppingItem(
+      id: json['id'],
+      name: json['name'],
+      amount: json['amount'],
+      category: json['category'],
+      price: json['price'],
+      done: json['done'],
+    );
+  }
 }
 
 class ShoppingScreen extends StatefulWidget {
@@ -29,7 +54,7 @@ class ShoppingScreen extends StatefulWidget {
 }
 
 class _ShoppingScreenState extends State<ShoppingScreen> {
-  final List<ShoppingItem> _items = [];
+  List<ShoppingItem> _items = [];
   final nameCtrl = TextEditingController();
   final amountCtrl = TextEditingController();
   final categoryCtrl = TextEditingController();
@@ -56,14 +81,23 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
     _loadItems();
   }
 
-  void _loadItems() {
-    setState(() {
-      // Lade aus SharedPreferences oder anderer lokaler Speicherung
-    });
+  Future<void> _loadItems() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? itemsJson = prefs.getString('shopping_items');
+    if (itemsJson != null) {
+      final List<dynamic> itemsList = json.decode(itemsJson);
+      setState(() {
+        _items = itemsList.map((item) => ShoppingItem.fromJson(item)).toList();
+      });
+    }
   }
 
-  void _saveItems() {
-    // Speichere in SharedPreferences oder anderer lokaler Speicherung
+  Future<void> _saveItems() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String itemsJson = json.encode(
+      _items.map((item) => item.toJson()).toList(),
+    );
+    await prefs.setString('shopping_items', itemsJson);
   }
 
   List<String> get _availableCategories {
@@ -162,12 +196,13 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
                   label: Text(
                     'Artikel hinzufügen',
                     style: GoogleFonts.poppins(
-                      fontSize: 13,
+                      fontSize: 12,
                       color: Colors.white,
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Color.fromARGB(255, 26, 169, 48),
+                    padding: EdgeInsets.all(9),
                   ),
                 ),
               ),
@@ -304,7 +339,7 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
             child: ChoiceChip(
               label: Text(
                 category,
-                style: GoogleFonts.poppins(fontSize: 12, color: Colors.white),
+                style: TextStyle(fontSize: 12, color: Colors.white),
               ),
               selected: isSelected,
               selectedColor: Color.fromARGB(255, 26, 169, 48),
@@ -322,7 +357,6 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
 
   Widget buildShoppingListSection() {
     final filteredItems = _filteredItems;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -347,31 +381,37 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
   }
 
   Widget _buildEmptyState() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.shopping_cart_outlined, size: 64, color: Colors.grey[400]),
-          SizedBox(height: 16),
-          Text(
-            _searchQuery.isNotEmpty || _selectedCategory != 'Alle'
-                ? 'Keine Artikel gefunden'
-                : 'Keine Artikel in der Einkaufsliste',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.shopping_cart_outlined,
+              size: 64,
+              color: Colors.grey[400],
             ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Fügen Sie Artikel hinzu, um zu beginnen',
-            style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[500]),
-            textAlign: TextAlign.center,
-          ),
-        ],
+            SizedBox(height: 16),
+            Text(
+              _searchQuery.isNotEmpty || _selectedCategory != 'Alle'
+                  ? 'Keine Artikel gefunden'
+                  : 'Keine Artikel in der Einkaufsliste',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Fügen Sie Artikel hinzu, um zu beginnen',
+              style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[500]),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -457,21 +497,6 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
                       fontWeight: FontWeight.w600,
                       color: item.done ? Colors.grey[300] : Colors.black,
                     ),
-                  ),
-                  SizedBox(height: 4),
-                  PopupMenuButton(
-                    color: Colors.white,
-                    itemBuilder: (context) => [
-                      PopupMenuItem(child: Text('Bearbeiten'), value: 'edit'),
-                      PopupMenuItem(
-                        child: Text(
-                          'Löschen',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                        value: 'delete',
-                      ),
-                    ],
-                    onSelected: (value) => _handleMenuAction(value, item),
                   ),
                 ],
               ),
@@ -885,7 +910,7 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('${item.name} entfernt'),
-        backgroundColor: Colors.orange,
+        backgroundColor: Colors.red,
         action: SnackBarAction(
           label: 'Rückgängig',
           textColor: Colors.white,
@@ -900,7 +925,7 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
     );
   }
 
-  void _handleMenuAction(String action, ShoppingItem item) {
+  void handleMenuAction(String action, ShoppingItem item) {
     switch (action) {
       case 'edit':
         _showEditItemSheet(item);

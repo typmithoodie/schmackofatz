@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:schmackofatz/screens/meal_plan_screen.dart';
 import 'package:schmackofatz/screens/profile/profile_screen.dart';
 import '../services/fridge_service.dart';
 import 'fridge_screen.dart';
@@ -532,7 +533,10 @@ class _HomeScreenState extends State<HomeScreen> {
             SizedBox(width: 8),
             IconButton(
               onPressed: () {
-                _showComingSoonDialog('Wochenplanung');
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => WeeklyPlanScreen()),
+                );
               },
               icon: Icon(
                 Icons.arrow_forward_ios_outlined,

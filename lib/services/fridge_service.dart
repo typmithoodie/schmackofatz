@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../models/fridge_item.dart';
 
 /// Service für die Verwaltung von Kühlschrank-Artikeln
@@ -12,11 +13,12 @@ class FridgeService {
   /// Ruft alle Kühlschrank-Artikel ab
   Future<List<FridgeItem>> getAllItems() async {
     final prefs = await SharedPreferences.getInstance();
-    final List<String>? storedItems = prefs.getStringList(_storageKey);
+    final String? storedItems = prefs.getString(_storageKey);
 
     if (storedItems == null) return [];
 
-    return storedItems.map((json) => FridgeItem.fromJson(json)).toList();
+    final List<dynamic> itemsList = json.decode(storedItems);
+    return itemsList.map((json) => FridgeItem.fromJson(json)).toList();
   }
 
   /// Fügt einen neuen Artikel zum Kühlschrank hinzu
@@ -181,8 +183,10 @@ class FridgeService {
   /// Private Methode zum Speichern von Artikeln im Speicher
   Future<void> _saveItems(List<FridgeItem> items) async {
     final prefs = await SharedPreferences.getInstance();
-    final List<String> jsonList = items.map((item) => item.toJson()).toList();
-    await prefs.setStringList(_storageKey, jsonList);
+    final String itemsJson = json.encode(
+      items.map((item) => item.toJson()).toList(),
+    );
+    await prefs.setString(_storageKey, itemsJson);
   }
 }
 

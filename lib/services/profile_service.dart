@@ -13,6 +13,12 @@ class ProfileService {
   // Aktueller Benutzer
   User? get currentUser => _auth.currentUser;
 
+  /// Hilfsmethode um benutzerspezifische Pref-Keys zu generieren
+  String _getUserSpecificKey(String key) {
+    final userId = currentUser?.uid ?? 'guest';
+    return '${userId}_$key';
+  }
+
   /// Profilbild hochladen (vereinfachte Version ohne Firebase Storage)
   Future<String?> uploadProfileImage(XFile imageFile) async {
     try {
@@ -25,7 +31,7 @@ class ProfileService {
       final bytes = await imageFile.readAsBytes();
       final base64Image = 'data:image/jpeg;base64,${base64Encode(bytes)}';
 
-      // Profilbild URL in SharedPreferences speichern
+      // Profilbild URL in SharedPreferences speichern (benutzerspezifisch)
       await _saveProfileImageUrl(base64Image);
 
       return base64Image;
@@ -34,7 +40,7 @@ class ProfileService {
     }
   }
 
-  // Get profile image URL
+  // Get profile image URL (benutzerspezifisch)
   Future<String?> getProfileImageUrl() async {
     try {
       // First check if user is signed in
@@ -45,9 +51,9 @@ class ProfileService {
         return currentUser!.photoURL;
       }
 
-      // Fallback to stored preferences
+      // Fallback to stored preferences (benutzerspezifisch)
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getString('profile_image_url');
+      return prefs.getString(_getUserSpecificKey('profile_image_url'));
     } catch (e) {
       return null;
     }
@@ -62,14 +68,14 @@ class ProfileService {
       await currentUser!.updateDisplayName(username);
       await currentUser!.reload();
 
-      // Save to preferences
+      // Save to preferences (benutzerspezifisch)
       await _saveUsername(username);
     } catch (e) {
       throw Exception('Fehler beim Aktualisieren des Benutzernamens!');
     }
   }
 
-  // Get stored username
+  // Get stored username (benutzerspezifisch)
   Future<String?> getUsername() async {
     try {
       if (currentUser?.displayName != null &&
@@ -78,13 +84,13 @@ class ProfileService {
       }
 
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getString('username');
+      return prefs.getString(_getUserSpecificKey('username'));
     } catch (e) {
       return null;
     }
   }
 
-  // Get stored email
+  // Get stored email (benutzerspezifisch)
   Future<String?> getEmail() async {
     try {
       if (currentUser?.email != null) {
@@ -92,52 +98,52 @@ class ProfileService {
       }
 
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getString('email');
+      return prefs.getString(_getUserSpecificKey('email'));
     } catch (e) {
       return null;
     }
   }
 
-  // Save username to preferences
+  // Save username to preferences (benutzerspezifisch)
   Future<void> _saveUsername(String username) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('username', username);
+    await prefs.setString(_getUserSpecificKey('username'), username);
   }
 
-  // Save profile image URL to preferences
+  // Save profile image URL to preferences (benutzerspezifisch)
   Future<void> _saveProfileImageUrl(String url) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('profile_image_url', url);
+    await prefs.setString(_getUserSpecificKey('profile_image_url'), url);
   }
 
-  // Save email to preferences
+  // Save email to preferences (benutzerspezifisch)
   Future<void> saveEmail(String email) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('email', email);
+    await prefs.setString(_getUserSpecificKey('email'), email);
   }
 
-  /// Profilbild löschen
+  /// Profilbild löschen (benutzerspezifisch)
   Future<void> deleteProfileImage() async {
     try {
       if (currentUser == null) return;
 
-      // Lösche nur aus SharedPreferences (kein Firebase Storage)
+      // Lösche nur aus SharedPreferences (benutzerspezifisch)
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('profile_image_url');
+      await prefs.remove(_getUserSpecificKey('profile_image_url'));
     } catch (e) {
       // Ignoriere Fehler (Bild könnte nicht existieren)
     }
   }
 
-  // Clear all profile data
+  // Clear all profile data (benutzerspezifisch)
   Future<void> clearProfileData() async {
     try {
       await deleteProfileImage();
 
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('username');
-      await prefs.remove('email');
-      await prefs.remove('profile_image_url');
+      await prefs.remove(_getUserSpecificKey('username'));
+      await prefs.remove(_getUserSpecificKey('email'));
+      await prefs.remove(_getUserSpecificKey('profile_image_url'));
     } catch (e) {
       // Ignore errors
     }

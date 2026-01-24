@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/fridge_item.dart';
+import '../services/fridge_service.dart';
+import '../services/notification_service.dart';
 
 class FridgeScreen extends StatefulWidget {
   const FridgeScreen({super.key});
@@ -10,17 +12,16 @@ class FridgeScreen extends StatefulWidget {
 }
 
 class _FridgeScreenState extends State<FridgeScreen> {
-  final List<FridgeItem> _items = [];
+  List<FridgeItem> _items = [];
   final nameCtrl = TextEditingController();
   final amountCtrl = TextEditingController();
   final unitCtrl = TextEditingController();
   final categoryCtrl = TextEditingController();
-  final notesCtrl = TextEditingController();
-  final tagsCtrl = TextEditingController();
 
   DateTime selectedDate = DateTime.now().add(Duration(days: 7));
   String _searchQuery = '';
   String _selectedCategory = 'Alle';
+  bool notificationsEnabled = true;
 
   final List<String> _categories = [
     'Alle',
@@ -36,18 +37,35 @@ class _FridgeScreenState extends State<FridgeScreen> {
     'Sonstiges',
   ];
 
+  // Farben für Kategorien
+  final Map<String, Color> _categoryColors = {
+    'Gemüse': Color(0xFF4CAF50),
+    'Obst': Color(0xFFFF9800),
+    'Milchprodukte': Color(0xFF2196F3),
+    'Fleisch': Color(0xFFE91E63),
+    'Fisch': Color(0xFF00BCD4),
+    'Getränke': Color(0xFF3F51B5),
+    'Backwaren': Color(0xFFFF5722),
+    'Gewürze': Color(0xFF9C27B0),
+    'Konserven': Color(0xFF607D8B),
+    'Sonstiges': Color(0xFF795548),
+  };
+
   @override
   void initState() {
     super.initState();
     _loadItems();
   }
 
-  void _loadItems() {
-    // Lade Beispiel-Items für Demo
+  Future<void> _loadItems() async {
+    final items = await FridgeService().getAllItems();
     setState(() {
-      _items.clear();
-      // Keine automatischen Items - beginnt leer
+      _items = items;
     });
+  }
+
+  Future<void> _saveItems() async {
+    // Items are saved through FridgeService methods
   }
 
   List<FridgeItem> get _filteredItems {
@@ -82,9 +100,8 @@ class _FridgeScreenState extends State<FridgeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: 20),
             _buildHeader(),
-            SizedBox(height: 20),
+            SizedBox(height: 8),
             _buildSearchBar(),
             SizedBox(height: 12),
             _buildFilterChips(),
@@ -105,7 +122,7 @@ class _FridgeScreenState extends State<FridgeScreen> {
 
   Widget _buildHeader() {
     return Padding(
-      padding: EdgeInsets.fromLTRB(20, 20, 20, 0),
+      padding: EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
           Image.asset(
@@ -124,6 +141,12 @@ class _FridgeScreenState extends State<FridgeScreen> {
               ),
             ),
           ),
+          // Test notification button (for testing purposes)
+          IconButton(
+            icon: Icon(Icons.notifications, color: Colors.grey),
+            onPressed: _testNotification,
+            tooltip: 'Notification testen',
+          ),
           IconButton(
             icon: Icon(Icons.refresh, color: Colors.grey),
             onPressed: _loadItems,
@@ -131,6 +154,34 @@ class _FridgeScreenState extends State<FridgeScreen> {
         ],
       ),
     );
+  }
+
+  /// Test function to simulate notification
+  Future<void> _testNotification() async {
+    // Create a test item that expires soon
+    final testItem = FridgeItem(
+      id: 'test_${DateTime.now().millisecondsSinceEpoch}',
+      name: 'Test-Milch',
+      category: 'Milchprodukte',
+      amount: 1,
+      unit: 'Liter',
+      bestBeforeDate: DateTime.now().add(const Duration(days: 1)),
+      addedDate: DateTime.now(),
+      purchaseDate: DateTime.now(),
+      originalAmount: 1,
+    );
+
+    // Show immediate notification
+    await NotificationService().showImmediateNotification(testItem);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Test-Benachrichtigung wurde gesendet!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
   }
 
   Widget _buildSearchBar() {
@@ -294,12 +345,15 @@ class _FridgeScreenState extends State<FridgeScreen> {
         ? Colors.amber
         : Colors.green;
 
+    final categoryColor = _categoryColors[item.category] ?? Colors.grey;
+
     return Card(
       margin: EdgeInsets.only(bottom: 12),
       elevation: 0,
+      color: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: expirationColor.withOpacity(0.3)),
+        side: BorderSide(color: Colors.grey.shade300, width: 1),
       ),
       child: Padding(
         padding: EdgeInsets.all(16),
@@ -336,28 +390,40 @@ class _FridgeScreenState extends State<FridgeScreen> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.grey[100],
+                          color: categoryColor.withOpacity(0.10),
                           borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          item.category,
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            color: Colors.grey[700],
+                          border: Border.all(
+                            color: categoryColor.withOpacity(0.10),
+                            width: 1,
                           ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: categoryColor,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              item.category,
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: categoryColor,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(
-                        Icons.scale_outlined,
-                        size: 16,
-                        color: Colors.grey[600],
-                      ),
-                      SizedBox(width: 4),
                       Text(
                         '${item.amount} ${item.unit}',
                         style: GoogleFonts.poppins(
@@ -366,11 +432,7 @@ class _FridgeScreenState extends State<FridgeScreen> {
                         ),
                       ),
                       SizedBox(width: 16),
-                      Icon(
-                        Icons.calendar_today_outlined,
-                        size: 16,
-                        color: expirationColor,
-                      ),
+                      Icon(Icons.access_time, size: 16, color: expirationColor),
                       SizedBox(width: 4),
                       Text(
                         daysUntilExpiration < 0
@@ -423,6 +485,7 @@ class _FridgeScreenState extends State<FridgeScreen> {
             ),
             SizedBox(width: 8),
             PopupMenuButton(
+              color: Colors.white,
               itemBuilder: (context) => [
                 PopupMenuItem(child: Text('Bearbeiten'), value: 'edit'),
                 PopupMenuItem(child: Text('Verbrauchen'), value: 'consume'),
@@ -459,10 +522,13 @@ class _FridgeScreenState extends State<FridgeScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => _AddEditItemSheet(
-        onSave: (item) {
-          setState(() {
-            _items.add(item);
-          });
+        onSave: (item) async {
+          await FridgeService().addItem(item);
+          await _loadItems();
+
+          // Show notification for expiring items
+          await NotificationService().showImmediateNotification(item);
+
           Navigator.pop(context);
         },
       ),
@@ -475,8 +541,6 @@ class _FridgeScreenState extends State<FridgeScreen> {
     amountCtrl.text = item.amount.toString();
     unitCtrl.text = item.unit;
     categoryCtrl.text = item.category;
-    notesCtrl.text = item.notes?.toString() ?? '';
-    tagsCtrl.text = item.tags.join(', ');
     selectedDate = item.bestBeforeDate;
 
     showModalBottomSheet(
@@ -485,10 +549,9 @@ class _FridgeScreenState extends State<FridgeScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => _AddEditItemSheet(
         existingItem: item,
-        onSave: (updatedItem) {
-          setState(() {
-            _items[index] = updatedItem;
-          });
+        onSave: (updatedItem) async {
+          await FridgeService().updateItem(updatedItem);
+          await _loadItems();
           Navigator.pop(context);
         },
       ),
@@ -500,21 +563,34 @@ class _FridgeScreenState extends State<FridgeScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Verbrauchen'),
-        content: Text('Möchtest du "${item.name}" wirklich verbrauchen?'),
+        backgroundColor: Colors.white,
+        title: Text(
+          'Verbrauchen',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        content: Text(
+          'Möchtest du den Artikel "${item.name}" wirklich verbrauchen?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Abbrechen'),
+            child: Text(
+              'Abbrechen',
+              style: TextStyle(color: Color.fromARGB(255, 26, 169, 48)),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
               setState(() {
                 _items.removeAt(index);
               });
+              _saveItems();
               Navigator.pop(context);
             },
-            child: Text('Verbrauchen'),
+            child: Text('Verbrauchen', style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color.fromARGB(255, 26, 169, 48),
+            ),
           ),
         ],
       ),
@@ -526,18 +602,26 @@ class _FridgeScreenState extends State<FridgeScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Artikel löschen'),
-        content: Text('Möchtest du "${item.name}" wirklich löschen?'),
+        backgroundColor: Colors.white,
+        title: Text(
+          'Artikel löschen',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        content: Text(
+          'Möchtest du den Artikel "${item.name}" wirklich löschen?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Abbrechen'),
+            child: Text(
+              'Abbrechen',
+              style: TextStyle(color: Color.fromARGB(255, 26, 169, 48)),
+            ),
           ),
           ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _items.removeAt(index);
-              });
+            onPressed: () async {
+              await FridgeService().removeItem(item.id);
+              await _loadItems();
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -565,8 +649,6 @@ class _AddEditItemSheetState extends State<_AddEditItemSheet> {
   final amountCtrl = TextEditingController();
   final unitCtrl = TextEditingController();
   final categoryCtrl = TextEditingController();
-  final notesCtrl = TextEditingController();
-  final tagsCtrl = TextEditingController();
 
   DateTime _selectedDate = DateTime.now().add(Duration(days: 7));
 
@@ -603,8 +685,6 @@ class _AddEditItemSheetState extends State<_AddEditItemSheet> {
       amountCtrl.text = item.amount.toString();
       unitCtrl.text = item.unit;
       categoryCtrl.text = item.category;
-      notesCtrl.text = item.notes?.toString() ?? '';
-      tagsCtrl.text = item.tags.join(', ');
       _selectedDate = item.bestBeforeDate;
     } else {
       unitCtrl.text = 'Stück';
@@ -657,22 +737,14 @@ class _AddEditItemSheetState extends State<_AddEditItemSheet> {
                       ),
                     ),
                     SizedBox(height: 24),
-                    _buildTextField(
-                      nameCtrl,
-                      'Name *',
-                      Icons.label_outlined,
-                      true,
-                    ),
+                    _buildTextField(nameCtrl, 'Name'),
                     SizedBox(height: 16),
                     Row(
                       children: [
                         Expanded(
-                          flex: 2,
                           child: _buildTextField(
                             amountCtrl,
-                            'Menge *',
-                            Icons.scale_outlined,
-                            true,
+                            'Menge',
                             isNumber: true,
                           ),
                         ),
@@ -682,23 +754,6 @@ class _AddEditItemSheetState extends State<_AddEditItemSheet> {
                     ),
                     SizedBox(height: 16),
                     _buildCategoryDropdown(),
-                    SizedBox(height: 16),
-                    _buildDateSelector(),
-                    SizedBox(height: 16),
-                    _buildTextField(
-                      tagsCtrl,
-                      'Tags (kommagetrennt)',
-                      Icons.sell_outlined,
-                      false,
-                    ),
-                    SizedBox(height: 16),
-                    _buildTextField(
-                      notesCtrl,
-                      'Notizen',
-                      Icons.notes_outlined,
-                      false,
-                      maxLines: 3,
-                    ),
                     SizedBox(height: 24),
                     ElevatedButton(
                       onPressed: _saveItem,
@@ -732,9 +787,7 @@ class _AddEditItemSheetState extends State<_AddEditItemSheet> {
 
   Widget _buildTextField(
     TextEditingController controller,
-    String label,
-    IconData icon,
-    bool required, {
+    String label, {
     bool isNumber = false,
     int maxLines = 1,
   }) {
@@ -744,7 +797,7 @@ class _AddEditItemSheetState extends State<_AddEditItemSheet> {
       maxLines: maxLines,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon),
+        labelStyle: TextStyle(color: Colors.black),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -753,25 +806,17 @@ class _AddEditItemSheetState extends State<_AddEditItemSheet> {
             width: 2,
           ),
         ),
-        suffixIcon: required
-            ? Text('*', style: TextStyle(color: Colors.red))
-            : null,
       ),
-      validator: (value) {
-        if (required && (value == null || value.isEmpty)) {
-          return '$label ist erforderlich';
-        }
-        return null;
-      },
     );
   }
 
   Widget _buildUnitDropdown() {
     return DropdownButtonFormField<String>(
       value: unitCtrl.text.isNotEmpty ? unitCtrl.text : null,
+      dropdownColor: Colors.white,
       decoration: InputDecoration(
-        labelText: 'Einheit *',
-        prefixIcon: Icon(Icons.straighten_outlined),
+        labelText: 'Einheit',
+        labelStyle: TextStyle(color: Colors.black),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -789,21 +834,16 @@ class _AddEditItemSheetState extends State<_AddEditItemSheet> {
           unitCtrl.text = value ?? '';
         });
       },
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Einheit ist erforderlich';
-        }
-        return null;
-      },
     );
   }
 
   Widget _buildCategoryDropdown() {
     return DropdownButtonFormField<String>(
       value: categoryCtrl.text.isNotEmpty ? categoryCtrl.text : null,
+      dropdownColor: Colors.white,
       decoration: InputDecoration(
-        labelText: 'Kategorie *',
-        prefixIcon: Icon(Icons.category_outlined),
+        labelText: 'Kategorie',
+        labelStyle: TextStyle(color: Colors.black),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -821,80 +861,27 @@ class _AddEditItemSheetState extends State<_AddEditItemSheet> {
           categoryCtrl.text = value ?? '';
         });
       },
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Kategorie ist erforderlich';
-        }
-        return null;
-      },
-    );
-  }
-
-  Widget _buildDateSelector() {
-    return InkWell(
-      onTap: () async {
-        final DateTime? picked = await showDatePicker(
-          context: context,
-          initialDate: _selectedDate,
-          firstDate: DateTime.now(),
-          lastDate: DateTime.now().add(Duration(days: 365)),
-        );
-        if (picked != null) {
-          setState(() => _selectedDate = picked);
-        }
-      },
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: 'Haltbarkeitsdatum *',
-          prefixIcon: Icon(Icons.calendar_today_outlined),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-              color: Color.fromARGB(255, 26, 169, 48),
-              width: 2,
-            ),
-          ),
-          suffixIcon: Icon(Icons.arrow_drop_down),
-        ),
-        child: Text(
-          '${_selectedDate.day}.${_selectedDate.month}.${_selectedDate.year}',
-          style: GoogleFonts.poppins(),
-        ),
-      ),
     );
   }
 
   void _saveItem() {
-    if (_formKey.currentState!.validate()) {
-      final tags = tagsCtrl.text.isNotEmpty
-          ? tagsCtrl.text
-                .split(',')
-                .map((tag) => tag.trim())
-                .where((tag) => tag.isNotEmpty)
-                .toList()
-          : <String>[];
+    final amount = double.tryParse(amountCtrl.text);
+    if (amount == null) return;
 
-      final amount = double.tryParse(amountCtrl.text);
-      if (amount == null) return;
+    final item = FridgeItem(
+      id:
+          widget.existingItem?.id ??
+          DateTime.now().millisecondsSinceEpoch.toString(),
+      name: nameCtrl.text,
+      category: categoryCtrl.text,
+      amount: amount,
+      unit: unitCtrl.text,
+      bestBeforeDate: _selectedDate,
+      addedDate: DateTime.now(),
+      purchaseDate: DateTime.now(),
+      originalAmount: amount,
+    );
 
-      final item = FridgeItem(
-        id:
-            widget.existingItem?.id ??
-            DateTime.now().millisecondsSinceEpoch.toString(),
-        name: nameCtrl.text,
-        category: categoryCtrl.text,
-        amount: amount,
-        unit: unitCtrl.text,
-        bestBeforeDate: _selectedDate,
-        addedDate: DateTime.now(),
-        purchaseDate: DateTime.now(),
-        notes: notesCtrl.text.isNotEmpty ? notesCtrl.text : null,
-        tags: tags,
-        originalAmount: amount,
-      );
-
-      widget.onSave(item);
-    }
+    widget.onSave(item);
   }
 }

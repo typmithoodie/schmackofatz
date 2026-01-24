@@ -68,7 +68,7 @@ class AuthService {
       await _saveGuestMode(false);
       _isGuestMode = false;
     } catch (e) {
-      throw Exception('Fehler beim Abmelden: $e');
+      throw Exception('Fehler beim Abmelden');
     }
   }
 
@@ -96,10 +96,20 @@ class AuthService {
   /// Passwort ändern
   Future<void> changePassword(String newPassword) async {
     try {
-      if (currentUser != null) {
-        await currentUser!.updatePassword(newPassword);
-        await currentUser!.reload();
+      if (currentUser == null) {
+        throw FirebaseAuthException(
+          code: 'no-user',
+          message: 'Benutzer ist nicht angemeldet.',
+        );
       }
+      if (_isGuestMode) {
+        throw FirebaseAuthException(
+          code: 'guest-mode',
+          message: 'Gäste können das Passwort nicht ändern.',
+        );
+      }
+      await currentUser!.updatePassword(newPassword);
+      await currentUser!.reload();
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
     }
@@ -108,9 +118,19 @@ class AuthService {
   /// E-Mail-Adresse ändern (benötigt kürzliche Anmeldung)
   Future<void> changeEmail(String newEmail) async {
     try {
-      if (currentUser != null) {
-        await currentUser!.verifyBeforeUpdateEmail(newEmail.trim());
+      if (currentUser == null) {
+        throw FirebaseAuthException(
+          code: 'no-user',
+          message: 'Benutzer ist nicht angemeldet.',
+        );
       }
+      if (_isGuestMode) {
+        throw FirebaseAuthException(
+          code: 'guest-mode',
+          message: 'Gäste können die E-Mail-Adresse nicht ändern.',
+        );
+      }
+      await currentUser!.verifyBeforeUpdateEmail(newEmail.trim());
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
     }
@@ -128,21 +148,25 @@ class AuthService {
       case 'user-not-found':
         return 'Kein Benutzer mit dieser E-Mail-Adresse gefunden.';
       case 'wrong-password':
-        return 'Falsches Passwort.';
+        return 'Falsches Passwort. Bitte überprüfe deine Eingabe oder klicke auf "Passwort vergessen", um dein Passwort zurückzusetzen.';
       case 'email-already-in-use':
         return 'Diese E-Mail-Adresse wird bereits verwendet.';
       case 'weak-password':
-        return 'Das Passwort ist zu schwach.';
+        return 'Das Passwort ist zu schwach. Es muss mindestens 6 Zeichen lang sein.';
       case 'invalid-email':
-        return 'Ungültige E-Mail-Adresse.';
+        return 'Ungültige E-Mail-Adresse. Bitte überprüfe die Formatierung.';
       case 'operation-not-allowed':
         return 'E-Mail/Passwort-Anmeldung ist nicht aktiviert.';
       case 'user-disabled':
         return 'Dieses Benutzerkonto wurde deaktiviert.';
       case 'too-many-requests':
-        return 'Zu viele Anfragen. Bitte versuchen Sie es später erneut.';
+        return 'Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut.';
       case 'requires-recent-login':
-        return 'Diese Operation erfordert eine kürzliche Anmeldung.';
+        return 'Aus Sicherheitsgründen musst du dich erneut anmelden, um diese Aktion auszuführen.';
+      case 'no-user':
+        return 'Du musst angemeldet sein, um diese Aktion auszuführen.';
+      case 'guest-mode':
+        return 'Diese Aktion ist im Gast-Modus nicht verfügbar. Bitte melde dich mit deinem Konto an.';
       default:
         return 'Ein Fehler ist aufgetreten: ${e.message}';
     }

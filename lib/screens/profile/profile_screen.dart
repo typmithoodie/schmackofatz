@@ -22,11 +22,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _profileImageUrl;
   bool _isLoading = true;
   bool _isUpdating = false;
+  bool _isLoggedIn = false;
 
   @override
   void initState() {
     super.initState();
+    _checkLoginStatus();
     _loadProfileData();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    final isSignedIn = _authService.isSignedIn;
+    final isGuestMode = _authService.isGuestMode;
+    setState(() {
+      _isLoggedIn = isSignedIn && !isGuestMode;
+    });
+  }
+
+  bool _canChangeSensitiveData() {
+    if (!_isLoggedIn) return false;
+    return _authService.isSignedIn && !_authService.isGuestMode;
+  }
+
+  Future<void> _showNotLoggedInDialog() async {
+    return showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        title: Text(
+          'Nicht angemeldet!',
+          style: GoogleFonts.poppins(
+            fontSize: 20,
+            color: Colors.black,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: Text(
+          'Du musst angemeldet sein, um diese Aktion auszuführen. Bitte melde dich mit deinem Konto an.',
+          style: TextStyle(fontSize: 14, color: Colors.grey),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color.fromARGB(255, 26, 169, 48),
+            ),
+            child: Text('OK', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _loadProfileData() async {
@@ -79,7 +126,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Fehler beim Aktualisieren des Profilbilds!'),
+            content: Text('Fehler beim Aktualisieren des Profilbildes!'),
             backgroundColor: Colors.red,
           ),
         );
@@ -92,6 +139,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _updateUsername() async {
+    // Security check: Verify user is logged in (not in guest mode)
+    if (!_canChangeSensitiveData()) {
+      await _showNotLoggedInDialog();
+      return;
+    }
+
     final usernameController = TextEditingController(text: _username ?? '');
 
     final result = await showDialog<Map<String, String>>(
@@ -189,6 +242,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _updateEmail() async {
+    // Security check: Verify user is logged in (not in guest mode)
+    if (!_canChangeSensitiveData()) {
+      await _showNotLoggedInDialog();
+      return;
+    }
+
     final emailController = TextEditingController(text: _email ?? '');
 
     final result = await showDialog<Map<String, String>>(
@@ -294,6 +353,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _changePassword() async {
+    // Security check: Verify user is logged in (not in guest mode)
+    if (!_canChangeSensitiveData()) {
+      await _showNotLoggedInDialog();
+      return;
+    }
+
     final passwordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
     bool obscurePassword = true;
