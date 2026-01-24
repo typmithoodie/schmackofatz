@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/fridge_item.dart';
 import '../services/fridge_service.dart';
-import '../services/notification_service.dart';
 
 class FridgeScreen extends StatefulWidget {
   const FridgeScreen({super.key});
@@ -141,12 +140,6 @@ class _FridgeScreenState extends State<FridgeScreen> {
               ),
             ),
           ),
-          // Test notification button (for testing purposes)
-          IconButton(
-            icon: Icon(Icons.notifications, color: Colors.grey),
-            onPressed: _testNotification,
-            tooltip: 'Notification testen',
-          ),
           IconButton(
             icon: Icon(Icons.refresh, color: Colors.grey),
             onPressed: _loadItems,
@@ -154,34 +147,6 @@ class _FridgeScreenState extends State<FridgeScreen> {
         ],
       ),
     );
-  }
-
-  /// Test function to simulate notification
-  Future<void> _testNotification() async {
-    // Create a test item that expires soon
-    final testItem = FridgeItem(
-      id: 'test_${DateTime.now().millisecondsSinceEpoch}',
-      name: 'Test-Milch',
-      category: 'Milchprodukte',
-      amount: 1,
-      unit: 'Liter',
-      bestBeforeDate: DateTime.now().add(const Duration(days: 1)),
-      addedDate: DateTime.now(),
-      purchaseDate: DateTime.now(),
-      originalAmount: 1,
-    );
-
-    // Show immediate notification
-    await NotificationService().showImmediateNotification(testItem);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Test-Benachrichtigung wurde gesendet!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    }
   }
 
   Widget _buildSearchBar() {
@@ -525,10 +490,6 @@ class _FridgeScreenState extends State<FridgeScreen> {
         onSave: (item) async {
           await FridgeService().addItem(item);
           await _loadItems();
-
-          // Show notification for expiring items
-          await NotificationService().showImmediateNotification(item);
-
           Navigator.pop(context);
         },
       ),

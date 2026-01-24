@@ -267,7 +267,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Text(
               'Gib deine neue E-Mail-Adresse ein:',
-              style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey),
+              style: TextStyle(fontSize: 14, color: Colors.grey),
             ),
             SizedBox(height: 16),
             TextField(
@@ -387,7 +387,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   labelText: 'Neues Passwort',
                   labelStyle: TextStyle(color: Colors.black),
                   hintText: 'Mindestens 6 Zeichen',
-                  hintStyle: TextStyle(color: Colors.black),
+                  hintStyle: TextStyle(color: Colors.black, fontSize: 14),
                   border: OutlineInputBorder(),
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(
@@ -416,7 +416,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   labelText: 'Passwort bestätigen',
                   labelStyle: TextStyle(color: Colors.black),
                   hintText: 'Passwort wiederholen',
-                  hintStyle: TextStyle(color: Colors.black),
+                  hintStyle: TextStyle(color: Colors.black, fontSize: 14),
                   border: OutlineInputBorder(),
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(
